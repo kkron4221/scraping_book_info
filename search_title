@@ -1,0 +1,51 @@
+# spreadsheet
+import gspread, json, urllib.request,time
+from oauth2client.service_account import ServiceAccountCredentials
+from bs4 import BeautifulSoup
+
+def spreadsheet(spread_url, spread_key):
+    res = urllib.request.urlopen(spread_url)
+    soup = BeautifulSoup(res, 'html.parser')
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+    credintials = ServiceAccountCredentials.from_json_keyfile_name('spreadTest-d67314f7f959.json', scope)
+    gc = gspread.authorize(credintials)
+    global worksheet
+    worksheet = gc.open_by_key(spread_key).sheet1
+    
+    
+# 東工大図書館検索
+
+from selenium import webdriver
+import re
+
+spreadsheet("https://docs.google.com/spreadsheets/d/1dhNV5wfiWJDSywRSUVfrEGZc1Q8h-KekdbQivVDUSgo/edit#gid=1629587095",'1dhNV5wfiWJDSywRSUVfrEGZc1Q8h-KekdbQivVDUSgo')
+
+url = 'https://topics.libra.titech.ac.jp/'
+
+browser = webdriver.Firefox()
+browser.get(url)
+
+for i in range(80, 85):
+    i = str(i)
+    import_value = worksheet.acell('F' + i).value
+    search_window = browser.find_element_by_id('edit-keys')
+    search_window.clear()
+    push_btn = browser.find_element_by_id('edit-submit')
+    search_window.send_keys(import_value)
+    push_btn.click()
+    
+    check_word = ''
+    try:
+        author = browser.find_element_by_class_name('authors_label')
+    except:
+        browser.back()
+        continue
+    author = author.text    
+    search_signal = re.compile(r'[^<]*')
+    mo = search_signal.search(author)
+    print(mo.group())
+    worksheet.update_cell(i,7, mo.group())
+    worksheet.update_cell(i,9, 'IT')
+    worksheet.update_cell(i,10, '東工大')
+    
+    browser.back()
